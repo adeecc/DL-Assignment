@@ -10,9 +10,8 @@ import matplotlib.pyplot as plt
 from constants import classes
 
 
-def matplotlib_imshow(img):
-    img = img.mean(dim=0)
-    img = img / 2 + 0.5  # unnormalize
+def matplotlib_imshow(img: torch.Tensor):
+    img = img.squeeze(dim=0)
     npimg = img.cpu().numpy()
     plt.imshow(npimg, cmap="Greys")
 
@@ -38,14 +37,13 @@ def plot_classes_preds(net, images, labels):
     """
     preds, probs = images_to_probs(net, images)
     # plot the images in the batch, along with predicted and true labels
-    fig = plt.figure(figsize=(20, 30))
-    for idx in np.arange(4):
-        ax = fig.add_subplot(1, 4, idx + 1, xticks=[], yticks=[])
+    fig = plt.figure(figsize=(8, 10))
+    for idx in range(16):
+        ax = fig.add_subplot(4, 4, idx + 1, xticks=[], yticks=[])
+
         matplotlib_imshow(images[idx])
         ax.set_title(
-            "{0}, {1:.1f}%\n(label: {2})".format(
-                classes[preds[idx]], probs[idx] * 100.0, classes[labels[idx]]
-            ),
+            f"{classes[preds[idx]]}, {probs[idx] * 100.0:.1f}%\n(label: {classes[labels[idx]]})",
             color=("green" if preds[idx] == labels[idx].item() else "red"),
         )
     return fig

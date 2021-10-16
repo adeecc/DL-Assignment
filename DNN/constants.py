@@ -5,7 +5,7 @@ import torch
 
 PATH_DATASETS = os.environ.get("PATH_DATASETS", ".")
 AVAIL_GPUS = min(1, torch.cuda.device_count())
-BATCH_SIZE = 512
+BATCH_SIZE = 256
 NUM_WORKERS = int(os.cpu_count() / 2)
 
 

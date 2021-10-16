@@ -10,16 +10,17 @@ from model import Net
 from constants import PATH_DATASETS, BATCH_SIZE, NUM_WORKERS, AVAIL_GPUS
 
 
-def layer_dict():
+def create_layer_dict():
     layers = {
         "fc1": nn.Linear(28 * 28, 300),
-        "bn1": nn.BatchNorm1d(300),
-        "relu1": nn.ReLU(),
-        "droput1": nn.Dropout(0.1),
+        # "bn1": nn.BatchNorm1d(300),
+        # "ac1": nn.ReLU(),
+        "ac1": nn.Sigmoid(),
+        # "droput1": nn.Dropout(0.1),
         "fc2": nn.Linear(300, 100),
-        "bn2": nn.BatchNorm1d(100),
-        "relu2": nn.ReLU(),
-        "dropout2": nn.Dropout(0.1),
+        # "bn2": nn.BatchNorm1d(100),
+        "ac2": nn.ReLU(),
+        # "dropout2": nn.Dropout(0.1),
         "fc3": nn.Linear(100, 10),
     }
 
@@ -42,11 +43,11 @@ def main():
         test_transforms=transforms,
     )
 
-    fashion_mnist_model = Net(layer_dict())
+    fashion_mnist_model = Net(create_layer_dict())
 
     trainer = pl.Trainer(
         progress_bar_refresh_rate=10,
-        max_epochs=30,
+        max_epochs=25,
         gpus=AVAIL_GPUS,
         logger=TensorBoardLogger("runs/", name="test_runs"),
     )
