@@ -48,3 +48,22 @@ OR?
 1. Baseline: [(1, 6, 5), max_pool(2, 2), Flatten, flattened_size, 10]
 2. Increasing Kernel Size: [(1, 6, 10), max_pool(2, 2), Flatten, flattened_size, 10]
 3. Adding More Filters: [(1, 6, 5), max_pool(2, 2), (6, 16, 3), max_pool(2, 2), Flatten, flattened_size, 10]
+
+
+## Experiments 
+| Model Name | Test Accuracy | Precision | Recall | Loss |
+| :------ | :-------: | :------: | :-----: | :-----: |
+| 2048_relu | 0.8914 | 0.892 | 0.8913 | 0.3094 |
+| 256_relu | 0.883 | 0.8816 | 0.8821 | 0.3306 |
+| 256_sigmoid | 0.8573 | 0.856 | 0.8559 | 0.4025 |
+| 256_tanh | 0.8723 | 0.8709 | 0.8718 | 0.3459 |
+| 350_ReLU_350_ReLU | 0.8906 | 0.8892 | 0.8899 | 0.3119 |
+| 400_ReLU_128_ReLU | 0.889 | 0.8876 | 0.8888 | 0.3155 |
+| 512_ReLU_128_reLU | 0.8756 | 0.8834 | 0.8771 | 0.3506 |
+| 512_ReLU_256_ReLU_128_ReLU_64_ReLU_32_ReLU_16_ReLU | 0.8809 | 0.8811 | 0.8804 | 0.3490 |
+| 512_relu | 0.8828 | 0.8828 | 0.8818 |0.3268 |
+| 720_ReLU_720_ReLU_720_ReLU | 0.8912 | 0.8932 | 0.8919 | 0.3305 |
+| 920_ReLU_920_ReLU | 0.8867 | 0.8875 | 0.8861 | 0.3312 |
+| baseline_0 | 0.8401 | 0.8358 | 0.8386 | 0.4566 |
+
+
