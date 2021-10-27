@@ -12,37 +12,18 @@ from utils import plot_classes_preds
 
 
 class Net(pl.LightningModule):
-    def __init__(
-        self, layers_dict: Dict[str, nn.Module] = None, flatten: bool = True
-    ) -> None:
+    def __init__(self, lr: float = 3e-4, weight_decay: float = 1e-3) -> None:
         super().__init__()
-        self.layers_dict = layers_dict
-        self.flatten = flatten
-        self.layers = nn.ModuleDict(self.layers_dict)
+        self.save_hyperparameters()
 
     def forward(self, x):
-        if self.flatten:
-            x = x.reshape(x.size(0), -1)
-        for _, layer in self.layers.items():
-            x = layer(x)
-
         return x
 
     def training_step(self, batch, batch_idx):
         images, labels = batch
         loss = F.cross_entropy(self(images), labels)
 
-        if self.current_epoch == 1 and batch_idx == 0:
-            sample_img = images[0].unsqueeze(0)
-            self.logger.experiment.add_graph(Net(self.layers_dict), sample_img)
-
         if batch_idx == 0:
-            self.logger.experiment.add_figure(
-                "predictions vs actual",
-                plot_classes_preds(self, images, labels),
-                global_step=self.current_epoch,
-            )
-
             for name, params in self.named_parameters():
                 self.logger.experiment.add_histogram(name, params, self.current_epoch)
 
@@ -64,6 +45,8 @@ class Net(pl.LightningModule):
             self.log(f"{stage}_acc", acc, prog_bar=True)
             self.log(f"{stage}_prec", prec)
             self.log(f"{stage}_rec", rec)
+        if stage == "test":
+            self.log(f"hp_metric", acc)
 
     def validation_step(self, batch, batch_idx):
         self.evaluate(batch, "val")
@@ -72,5 +55,45 @@ class Net(pl.LightningModule):
         self.evaluate(batch, "test")
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=3e-4, weight_decay=5e-4)
+        # optimizer = torch.optim.SGD(self.parameters(), lr=3e-4, momentum=1e-3, weight_decay=1e-3)
+        optimizer = torch.optim.Adam(
+            self.parameters(),
+            lr=self.hparams.lr,
+            weight_decay=self.hparams.weight_decay,
+        )
+
         return optimizer
+
+
+class DenseNet(Net):
+    def __init__(self, layers_dict: Dict[str, nn.Module] = None, lr: float = 3e-4, weight_decay: float = 1e-3) -> None:
+        super().__init__(lr, weight_decay)
+        self.layers = nn.ModuleDict(layers_dict)
+
+    def forward(self, x):
+        x = x.reshape(x.size(0), -1)
+        for _, layer in self.layers.items():
+            x = layer(x)
+
+        return x
+
+
+class ConvNet(Net):
+    def __init__(self, lr: float = 3e-4, weight_decay: float = 1e-3) -> None:
+        super().__init__(lr, weight_decay)
+
+        self.conv1 = nn.Conv2d(1, 6, 5)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(6, 16, 5)
+        self.fc1 = nn.Linear(16 * 4 * 4, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 10)
+
+    def forward(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = x.reshape(x.size(0), -1)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
