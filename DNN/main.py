@@ -76,13 +76,13 @@ def main():
     transforms = torchvision.transforms.Compose(
         [
             torchvision.transforms.ToTensor(),
-            torchvision.transforms.Normalize((0.5,), (0.5,)),
         ]
     )
 
     fashion_mnist_dm = FashionMNISTDataModule(
         data_dir=PATH_DATASETS,
         batch_size=BATCH_SIZE,
+        normalize=True,
         num_workers=NUM_WORKERS,
         train_transforms=transforms,
         val_transforms=transforms,
