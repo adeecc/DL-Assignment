@@ -32,8 +32,8 @@ class Net(pl.LightningModule):
         out = self(images)
 
         if self.loss_fn == "kl_div":
-            pred_probs = F.log_softmax(out, dim=0)
-            tgts = F.one_hot(labels, num_classes=self.num_classes)
+            pred_probs = F.log_softmax(out, dim=-1)
+            tgts = F.one_hot(labels, num_classes=self.num_classes).to(torch.float32)
             loss = F.kl_div(pred_probs, tgts, reduction="batchmean")
 
         else:
@@ -51,8 +51,8 @@ class Net(pl.LightningModule):
         out = self(x)
 
         if self.loss_fn == "kl_div":
-            pred_probs = F.log_softmax(out, dim=0)
-            tgts = F.one_hot(y, num_classes=self.num_classes)
+            pred_probs = F.log_softmax(out, dim=-1)
+            tgts = F.one_hot(y, num_classes=self.num_classes).to(torch.float32)
             loss = F.kl_div(pred_probs, tgts, reduction="batchmean")
 
         else:
@@ -112,11 +112,11 @@ class DenseNet(Net):
                 layers += [nn.Sigmoid()]
             elif activation_fn == "tanh":
                 layers += [nn.Tanh()]
-            elif activation_fn == 'hard_tanh':
+            elif activation_fn == "hard_tanh":
                 layers += [nn.Hardtanh()]
-            elif activation_fn == 'mish':
+            elif activation_fn == "mish":
                 layers += [nn.Mish()]
-            elif activation_fn == 'leaky_relu':
+            elif activation_fn == "leaky_relu":
                 layers += [nn.LeakyReLU()]
             else:
                 layers += [nn.ReLU()]
@@ -137,7 +137,7 @@ class ConvNet(Net):
         weight_decay: float = 1e-3,
         loss_fn: str = "cross_entropy",
     ) -> None:
-        super().__init__(lr, weight_decay, loss_fn=loss_fn)
+        super().__init__(lr=lr, weight_decay=weight_decay, loss_fn=loss_fn)
 
         self.conv1 = nn.Conv2d(1, 6, 5)
         self.pool = nn.MaxPool2d(2, 2)
