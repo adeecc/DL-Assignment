@@ -94,7 +94,7 @@ class DenseNet(Net):
         hidden_sizes: List[int] = None,
         lr: float = 3e-4,
         weight_decay: float = 1e-3,
-        activation_fn: str = "relu",
+        activation_fn: str = "hard_tanh",
         loss_fn: str = "cross_entropy",
     ) -> None:
         super().__init__(lr=lr, weight_decay=weight_decay, loss_fn=loss_fn)
@@ -112,14 +112,14 @@ class DenseNet(Net):
                 layers += [nn.Sigmoid()]
             elif activation_fn == "tanh":
                 layers += [nn.Tanh()]
-            elif activation_fn == "hard_tanh":
-                layers += [nn.Hardtanh()]
+            elif activation_fn == "relu":
+                layers += [nn.ReLU()]
             elif activation_fn == "mish":
                 layers += [nn.Mish()]
             elif activation_fn == "leaky_relu":
                 layers += [nn.LeakyReLU()]
             else:
-                layers += [nn.ReLU()]
+                layers += [nn.Hardtanh()]
 
         layers += [nn.Linear(hidden_sizes[-1], num_classes)]
 

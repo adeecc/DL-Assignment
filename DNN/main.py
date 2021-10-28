@@ -28,7 +28,7 @@ STD_MODELS = {
     "128_hardtanh": {"hidden_sizes": [128], "activation_fn": "hard_tanh"},
     "128_mish": {"hidden_sizes": [128], "activation_fn": "mish"},
     "128_leakyrelu": {"hidden_sizes": [128], "activation_fn": "leaky_relu"},
-    "128_relu": {"hidden_sizes": [128]},
+    "128_relu": {"hidden_sizes": [128], "activation_fn": "relu"},
     # Effect of Addition of Layers 1
     "115_ReLU_115_ReLU": {"hidden_sizes": [115, 115]},
     "125_ReLU_27_ReLU": {"hidden_sizes": [125, 27]},
