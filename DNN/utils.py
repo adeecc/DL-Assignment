@@ -47,3 +47,7 @@ def plot_classes_preds(net, images, labels):
             color=("green" if preds[idx] == labels[idx].item() else "red"),
         )
     return fig
+
+
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)

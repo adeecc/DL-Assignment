@@ -1,5 +1,3 @@
-import torch
-import torch.nn as nn
 import torchvision
 
 import pandas as pd
@@ -9,6 +7,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from pl_bolts.datamodules import FashionMNISTDataModule
 
 from model import ConvNet, DenseNet
+from utils import count_parameters
 from constants import (
     EPOCHS,
     LEARNING_RATE,
@@ -21,117 +20,31 @@ from constants import (
 
 
 STD_MODELS = {
-    # Multiclass Logistic Regression
-    "baseline_0": {
-        "fc1": nn.Linear(28 * 28, 10),
-    },
+    "baseline_0": {"arch": [784], "activation_fn": None},
     # Effect of Activation Functions
-    "256_sigmoid": {
-        "fc1": nn.Linear(28 * 28, 256),
-        "ac1": nn.Sigmoid(),
-        "fc2": nn.Linear(256, 10),
-    },
-    "256_tanh": {
-        "fc1": nn.Linear(28 * 28, 256),
-        "ac1": nn.Tanh(),
-        "fc2": nn.Linear(256, 10),
-    },
-    "256_relu": {
-        "fc1": nn.Linear(28 * 28, 256),
-        "ac1": nn.ReLU(),
-        "fc2": nn.Linear(256, 10),
-    },
-    # Effect of Addition of Layers
-    "512_relu": {
-        "fc1": nn.Linear(28 * 28, 512),
-        "ac1": nn.ReLU(),
-        "fc2": nn.Linear(512, 10),
-    },
-    "350_ReLU_350_ReLU": {
-        "fc1": nn.Linear(28 * 28, 350),
-        "ac1": nn.ReLU(),
-        "fc2": nn.Linear(350, 350),
-        "ac2": nn.ReLU(),
-        "fc3": nn.Linear(350, 10),
-    },
-    "400_ReLU_128_ReLU": {
-        "fc1": nn.Linear(28 * 28, 400),
-        "ac1": nn.ReLU(),
-        "fc2": nn.Linear(400, 128),
-        "ac2": nn.ReLU(),
-        "fc3": nn.Linear(128, 10),
-    },
-    # Effect of Addition of Layers
-    "2048_relu": {
-        "fc1": nn.Linear(28 * 28, 2048),
-        "ac1": nn.ReLU(),
-        "fc2": nn.Linear(2048, 10),
-    },
-    "920_ReLU_920_ReLU": {
-        "fc1": nn.Linear(28 * 28, 920),
-        "ac1": nn.ReLU(),
-        "fc2": nn.Linear(920, 920),
-        "ac2": nn.ReLU(),
-        "fc3": nn.Linear(920, 10),
-    },
-    "720_ReLU_720_ReLU_720_ReLU": {
-        "fc1": nn.Linear(28 * 28, 720),
-        "ac1": nn.ReLU(),
-        "fc2": nn.Linear(720, 720),
-        "ac2": nn.ReLU(),
-        "fc3": nn.Linear(720, 720),
-        "ac3": nn.ReLU(),
-        "fc4": nn.Linear(720, 10),
-    },
+    "256_sigmoid": {"arch": [784, 256], "activation_fn": "sigmoid"},
+    "256_tanh": {"arch": [784, 256], "activation_fn": "tanh"},
+    "256_relu": {"arch": [784, 256]},
+    # Effect of Addition of Layers 1
+    "200_ReLU_200_ReLU": {"arch": [784, 200, 200], "activation_fn": "relu"},
+    "250_ReLU_32_ReLU": {"arch": [784, 250, 32], "activation_fn": "relu"},
+    # Effect of Addition of Layers 2
+    "512_relu": {"arch": [784, 512]},
+    "350_ReLU_350_ReLU": {"arch": [784, 350, 350]},
+    "400_ReLU_128_ReLU": {"arch": [784, 400, 128]},
+    # Effect of Addition of Layers 3
+    "2048_relu": {"arch": [784, 2048]},
+    "920_ReLU_920_ReLU": {"arch": [784, 920, 920]},
+    "720_ReLU_720_ReLU_720_ReLU": {"arch": [784, 720, 720, 720]},
     # Encoder Type Models
-    "512_ReLU_128_ReLU": {
-        "fc1": nn.Linear(28 * 28, 512),
-        "ac1": nn.ReLU(),
-        "fc2": nn.Linear(512, 128),
-        "ac2": nn.ReLU(),
-        "fc3": nn.Linear(128, 10),
-    },
-    "5_ReLU": {
-        "fc1": nn.Linear(28 * 28, 5),
-        "ac1": nn.ReLU(),
-        "fc2": nn.Linear(5, 10),
-    },
+    "512_ReLU_128_ReLU": {"arch": [784, 512, 128]},
+    "5_ReLU": {"arch": [784, 5]},
     "512_ReLU_256_ReLU_128_ReLU_64_ReLU_32_ReLU_16_ReLU": {
-        "fc1": nn.Linear(28 * 28, 512),
-        "ac1": nn.ReLU(),
-        "fc2": nn.Linear(512, 256),
-        "ac2": nn.ReLU(),
-        "fc3": nn.Linear(256, 128),
-        "ac3": nn.ReLU(),
-        "fc4": nn.Linear(128, 64),
-        "ac4": nn.ReLU(),
-        "fc5": nn.Linear(64, 32),
-        "ac5": nn.ReLU(),
-        "fc6": nn.Linear(32, 16),
-        "ac6": nn.ReLU(),
-        "fc7": nn.Linear(16, 10),
+        "arch": [784, 256, 128, 64, 32, 16]
     },
-    "256_ReLU_64_ReLU_128_ReLU": {
-        "fc1": nn.Linear(28 * 28, 256),
-        "ac1": nn.ReLU(),
-        "fc2": nn.Linear(256, 64),
-        "ac2": nn.ReLU(),
-        "fc3": nn.Linear(64, 128),
-        "ac3": nn.ReLU(),
-        "fc4": nn.Linear(128, 10),
-    },
+    "256_ReLU_64_ReLU_128_ReLU": {"arch": [784, 256, 64, 128]},
     "1024_ReLU_2048_ReLU_2048_ReLU_2048_ReLU_256_ReLU_10": {
-        "fc1": nn.Linear(28 * 28, 1024),
-        "ac1": nn.ReLU(),
-        "fc2": nn.Linear(1024, 2048),
-        "ac2": nn.ReLU(),
-        "fc3": nn.Linear(2048, 2048),
-        "ac3": nn.ReLU(),
-        "fc4": nn.Linear(2048, 2048),
-        "ac4": nn.ReLU(),
-        "fc5": nn.Linear(2048, 256),
-        "ac5": nn.ReLU(),
-        "fc6": nn.Linear(256, 10),
+        "arch": [784, 1024, 2048, 2048, 2048, 256, 10]
     },
 }
 
@@ -146,16 +59,26 @@ def test_model(dm, name, model):
     )
 
     trainer.fit(model, datamodule=dm)
-    (res,) = trainer.test(model, datamodule=dm)
 
-    return {
-        "name": name,
-        "epochs": EPOCHS,
-        **res,
-        "lr": LEARNING_RATE,
-        "weight_decary": WEIGHT_DECAY,
-        "batch_size": BATCH_SIZE,
-    }
+    for exp_idx in range(10):
+
+        results = []
+        (res,) = trainer.test(model, datamodule=dm)
+
+        results.append(
+            {
+                "exp_idx": exp_idx,
+                "name": name,
+                "parameters": count_parameters(model),
+                "epochs": EPOCHS,
+                **res,
+                "lr": LEARNING_RATE,
+                "weight_decary": WEIGHT_DECAY,
+                "batch_size": BATCH_SIZE,
+            }
+        )
+
+    return results
 
 
 def main():
@@ -179,17 +102,14 @@ def main():
 
     # Test Standard FC Models
     for name, layers in STD_MODELS.items():
-        for _ in range(2):
-            model = DenseNet(layers, lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-            res = test_model(fashion_mnist_dm, name, model)
-
-            results.append(res)
+        model = DenseNet(**layers, lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+        res = test_model(fashion_mnist_dm, name, model)
+        results.append(res)
 
     # Test the Conv Net
-    for _ in range(2):
-        conv_net = ConvNet(lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-        res = test_model(fashion_mnist_dm, "conv_baseline", conv_net)
-        results.append(res)
+    conv_net = ConvNet(lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    res = test_model(fashion_mnist_dm, "conv_baseline", conv_net)
+    results.append(res)
 
     results = pd.DataFrame(results)
     results.to_csv("results.csv")

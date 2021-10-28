@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import List
 
 import torch
 import torch.nn as nn
@@ -66,16 +66,34 @@ class Net(pl.LightningModule):
 
 
 class DenseNet(Net):
-    def __init__(self, layers_dict: Dict[str, nn.Module] = None, lr: float = 3e-4, weight_decay: float = 1e-3) -> None:
+    def __init__(
+        self,
+        arch: List[int] = None,
+        activation_fn: str = "relu",
+        lr: float = 3e-4,
+        weight_decay: float = 1e-3,
+    ) -> None:
         super().__init__(lr, weight_decay)
-        self.layers = nn.ModuleDict(layers_dict)
+
+        layers = [nn.Flatten()]
+
+        for i in range(len(arch) - 1):
+            layers.append(nn.Linear(arch[i], arch[i + 1]))
+
+            if activation_fn == 'sigmoid':
+                layers.append(nn.Sigmoid())
+            elif activation_fn == 'tanh':
+                layers.append(nn.Tanh())
+            else:
+                layers.append(nn.ReLU())
+
+
+        layers.append(nn.Linear(arch[-1], 10))
+
+        self.net = nn.Sequential(*layers)
 
     def forward(self, x):
-        x = x.reshape(x.size(0), -1)
-        for _, layer in self.layers.items():
-            x = layer(x)
-
-        return x
+        return self.net(x)
 
 
 class ConvNet(Net):
