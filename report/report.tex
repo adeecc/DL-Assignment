@@ -1,0 +1,393 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage{geometry}
+ \geometry{
+ a4paper,
+ left=20mm,
+ right=20mm,
+ top=20mm,
+ bottom=20mm
+ }
+ 
+\usepackage{array}
+
+\title{
+    Assignment 1 \\
+    \large{CS F425 Deep Learning Assignment} \\
+
+}
+
+
+\author{
+    Aditya Chopra \\ \texttt{2019A7PS0178H}
+    \and
+    Omkar Pitale \\ \texttt{2019A7PS0083H}
+    \and
+    Aditya Jhaveri  \\ \texttt{2018A7PS0209H}
+}
+
+
+\date{October 2021}
+
+\begin{document}
+
+\maketitle
+
+
+\section{Experimental Results }
+
+\begin{quote}
+	The results are the mean values of the metrics, taken over 5 runs.
+	Experimentatl Conditions:
+\end{quote}
+
+\begin{center}
+	\begin{tabular}{| l | c |}
+		\hline
+		Hyperparameter          & Value                         \\
+		\hline
+		Optimizer               & AdamW                         \\
+		Parameter Initalization & Normal Xavier Initialization  \\
+		Random Seed             & 42 (for all random functions) \\
+		Epochs                  & 50                            \\
+		Batch Size              & 32                            \\
+		Learning Rate           & $3\cdot10^{-4}$               \\
+		Weight Decay            & $1\cdot10^{-3}$               \\
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{quote}
+	Unless otherwise specified, every layer (except the last) is followed by
+	ReLU activation. The last layer has implict softmax activation
+\end{quote}
+\begin{center}
+	\begin{tabular}{| c | m{11em} | c | c c c |}
+		\hline
+		Index & Architecture                       & Parameters & Test Acc & Test Prec & Test Rec \\
+		\hline
+		0     & Basline                            & 7850       & 0.8394   & 0.838951  & 0.840418 \\
+		1     & 128, sigmoid                       & 101770     & 0.8606   & 0.862840  & 0.861921 \\
+		2     & 128, tanh                          & 101770     & 0.8763   & 0.879838  & 0.877457 \\
+		3     & 128, hardtanh                      & 101770     & 0.8806   & 0.885084  & 0.881755 \\
+		4     & 128, mish                          & 101770     & 0.8777   & 0.883246  & 0.879091 \\
+		5     & 128, leakyrelu                     & 101770     & 0.8777   & 0.883389  & 0.879367 \\
+		6     & 128, relu                          & 101770     & 0.8785   & 0.884023  & 0.880200 \\
+		7     & 115, 115                           & 104775     & 0.8803   & 0.886437  & 0.880509 \\
+		8     & 125, 27                            & 101807     & 0.8795   & 0.883983  & 0.881655 \\
+		9     & 512                                & 407050     & 0.8826   & 0.887148  & 0.884466 \\
+		10    & 350, 350                           & 401110     & 0.8856   & 0.890028  & 0.886410 \\
+		11    & 400, 128                           & 366618     & 0.8843   & 0.887692  & 0.884947 \\
+		12    & 5                                  & 3985       & 0.8263   & 0.826856  & 0.826550 \\
+		13    & 512...$2^i$...16                   & 577178     & 0.8829   & 0.887832  & 0.884245 \\
+		14    & 256, 64, 128                       & 227018     & 0.8831   & 0.886028  & 0.883613 \\
+		15    & 512, 256, 64, 256                  & 569016     & 0.8843   & 0.888600  & 0.886414 \\
+		16    & Convolutional Network\footnotemark & 44374      & 0.8899   & 0.893300  & 0.891262 \\
+		\hline
+	\end{tabular}
+\end{center}
+
+\footnotetext{The architecture details are provided in its section}
+
+\pagebreak
+
+\section{Comparisons and Result
+Interpretation}
+
+\subsection{Baseline Model}
+
+We compare the performance of all models with respect to the most basic
+artificial neural network: A Multiclass Logistic Regression Model,
+i.e. Model 0.
+
+\subsection{Effect of Loss Function}
+
+We tested each model with Cross Entropy Loss and KL-Divergence. In the
+case of Multi-Class Classification with hard targets (i.e.~the target is
+a single class and not a probability distribution over the classes)
+KL-Divergence collapses to Cross Entropy Loss. Consequently, the results
+for each model trained with both the loss functions is absolutely
+identical (this is due to the constant random seed. If the seed was not
+fixed, the results would vary due to the stochastic nature of our
+programs.)
+
+
+\subsection{Effect of Activation
+Functions}
+
+
+\subsubsection{Models under consideration (in decreasing order of
+performance)}
+
+\begin{center}
+	\begin{tabular}{| c | m{11em} | c | c c c |}
+		\hline
+		Index & Architecture   & Parameters & Test Acc & Test Prec & Test Rec \\
+		\hline
+		3     & 128, hardtanh  & 101770     & 0.8806   & 0.885084  & 0.881755 \\
+		6     & 128, relu      & 101770     & 0.8785   & 0.884023  & 0.880200 \\
+		4     & 128, mish      & 101770     & 0.8777   & 0.883246  & 0.879091 \\
+		5     & 128, leakyrelu & 101770     & 0.8777   & 0.883389  & 0.879367 \\
+		2     & 128, tanh      & 101770     & 0.8763   & 0.879838  & 0.877457 \\
+		1     & 128, sigmoid   & 101770     & 0.8606   & 0.862840  & 0.861921 \\
+		\hline
+	\end{tabular}
+\end{center}
+
+The performance of ReLU and hardtanh superseded all others in all test
+runs, followed by mish and leaky-relu and finally tanh and sigmoid. The
+reason suggested by most papers is two fold: 
+
+\begin{enumerate}
+	
+	\item 
+	              
+	      Vanishing Gradients: tanh and sigmoid have their gradients saturate to 0, when the outputs reach
+	      near their respective extrema. Consequently, the models stop learning,
+	      increasing the number of epochs required for training. This problem is
+	      especially evident in DNNs and Image Classification. ReLU, LeakyReLU and
+	      Mish does not suffer with such problems, and as the output grows the
+	      gradient balances it out. The problem can be avoided in hardtanh with
+	      careful initalization.
+	      
+	              
+	      			
+	\item
+	      Sparsity: ReLU produces 0, whenever the inputs are 0. The more such
+	      units that exist in a layer the more sparse the resulting
+	      representation. Sigmoids on the other hand are always likely to
+	      generate some non-zero value resulting in dense representations.
+	      Sparse representations seem to be more beneficial than dense
+	      representations. This may also be attributed to the reason why it
+	      performs better than LeakyReLU and why hardtanh outperforms all
+	      others.
+\end{enumerate}
+
+Owing to the dominating performance of ReLU, we use the same in all
+further experiments.
+
+
+\subsection{Effect of Number of
+Parameters}
+
+\begin{itemize}
+				
+	\item
+	      We keep the architecture constant in our investigation.
+\end{itemize}
+
+
+\subsubsection{Models under Consideration (in increasing order of
+Parameters)}
+\begin{center}
+	\begin{tabular}{| c | m{11em} | c | c c c |}
+		\hline
+		Index & Architecture & Parameters & Test Acc & Test Prec & Test Rec \\
+		\hline
+		12    & 5            & 3985       & 0.8263   & 0.826856  & 0.826550 \\
+		0     & Basline      & 7850       & 0.8394   & 0.838951  & 0.840418 \\
+		6     & 128, relu    & 101770     & 0.8785   & 0.884023  & 0.880200 \\
+		9     & 512          & 407050     & 0.8826   & 0.887148  & 0.884466 \\ 
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{itemize}
+				
+	\item
+	      In general, models with more parameters have better results which is
+	      clearly visible from the experiments.
+	\item
+	      The terrible performance of Model 12 maybe due to the fact that the
+	      comparatively much larger input space is converted to a tiny encoding
+	      space, which is not enough to represent the complex features in inputs
+	      and hence the extremely poor performance.
+	\item
+	      As the number of parameters increases, more complex features can be
+	      represented and better the performance of the model. A smaller
+	      parameter space limits the kind of secondary representations that can
+	      be generated.
+	\item
+	      However, as we will note later, very large parameters spaces might
+	      also not desired due to diminishing returns. The model requires much
+	      more training to achieve similar levels of accuracy, even more so to
+	      improve upon others (Eg: Model 14)
+\end{itemize}
+
+
+\subsection{Effect of Addition of
+Layers}
+
+\begin{itemize}
+				
+	\item
+	      We keep total number of parameters as close as possible in all models
+	      considered simultaneously
+\end{itemize}
+
+
+\subsubsection{Models under Consideration (in decreasing order of
+performance)}
+
+\begin{center}
+	\begin{tabular}{| c | m{11em} | c | c c c |}
+		\hline
+		Index & Architecture & Parameters & Test Acc & Test Prec & Test Rec \\
+		\hline
+		7     & 115, 115     & 104775     & 0.8803   & 0.886437  & 0.880509 \\
+		8     & 125, 27      & 101807     & 0.8795   & 0.883983  & 0.881655 \\
+		6     & 128, relu    & 101770     & 0.8785   & 0.884023  & 0.880200 \\
+		\hline
+	\end{tabular}
+\end{center}
+\begin{center}
+	\begin{tabular}{| c | m{11em} | c | c c c |}
+		\hline
+		Index & Architecture & Parameters & Test Acc & Test Prec & Test Rec \\
+		\hline
+		10    & 350, 350     & 401110     & 0.8856   & 0.890028  & 0.886410 \\
+		11    & 400, 128     & 366618     & 0.8843   & 0.887692  & 0.884947 \\
+		9     & 512          & 407050     & 0.8826   & 0.887148  & 0.884466 \\
+		\hline
+	\end{tabular}
+\end{center}
+\begin{center}
+	\begin{tabular}{| c | m{11em} | c | c c c |}
+		\hline
+		Index & Architecture      & Parameters & Test Acc & Test Prec & Test Rec \\
+		\hline
+		13    & 512...$2^i$...16  & 577178     & 0.8829   & 0.887832  & 0.884245 \\
+		15    & 512, 256, 64, 256 & 569016     & 0.8843   & 0.888600  & 0.886414 \\
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{itemize}
+				
+	\item
+	      In general, adding more layers helps the model learn better and more
+	      complex representations. At every subsequent layer, a more complex
+	      representation can be created using the representations of the
+	      previous layer, allowing for better generalization.
+	\item
+	      Hierarchial Representation is a strong reason why DNNs give such
+	      impressive results.
+	\item
+	      In the first two sets of models, the parameter space size remains
+	      relatively constant and yet the performance of deeper netword has
+	      visible improvements over shallow networks. Even with lower number of
+	      parameters, deeper models are able to generalise better.
+	\item
+	      In the third model set, even though the parameter space size is
+	      relatively constant, adding layers does not improve performance. This
+	      is because, although adding more layers allows for learning more
+	      complex representations, learning such complex representations is a
+	      time consuming affair and requires many more epochs to show the
+	      improve in performance. Other reasons for better performance of model
+	      15 is discussed in the next section.
+\end{itemize}
+
+
+\subsection{Encoder type models - Effect of
+Structure}
+
+\begin{itemize}
+	\item
+	      Addition of Layers without consdiering parameter space size \#\#\#
+	      Models under Consideration (in decreasing order of performance)
+\end{itemize}
+\begin{center}
+	\begin{tabular}{| c | m{11em} | c | c c c |}
+		\hline
+		Index & Architecture      & Parameters & Test Acc & Test Prec & Test Rec \\
+		\hline
+		15    & 512, 256, 64, 256 & 569016     & 0.8843   & 0.888600  & 0.886414 \\
+		14    & 256, 64, 128      & 227018     & 0.8831   & 0.886028  & 0.883613 \\
+		13    & 512...$2^i$...16  & 577178     & 0.8829   & 0.887832  & 0.884245 \\
+		12    & 5                 & 3985       & 0.8263   & 0.826856  & 0.826550 \\
+								  
+		\hline
+	\end{tabular}
+\end{center}
+
+\begin{itemize}
+	\item
+	      For the model 12, as discussed previously the encoding space is too
+	      small to form any complex representations, and information is lost
+	      leading to poor performance.
+	\item
+	      We make use of hierarchial representations to squeeze out as much data
+	      as possible. At each level, we expect the representations to become
+	      more complex. To achieve this goal, we must structure the layers with
+	      careful consideration as well.
+	\item
+	      Even with double the parameter space size, and double the number of
+	      layers, performance of model 13 is equal, if not slightly worse after
+	      50 epochs. The assumption, that progressively smaller hidden sizes
+	      might help performance is not generally true. Autoencoder type
+	      architectures, usually perform better as in the experiments.
+	\item
+	      Model 14 and 15 uses an \textbf{Autoencoder} type architecture and
+	      gives the best performance overall. This can be attributed to the fact
+	      that the model is forced to learn a compressive encoding of the input
+	      and recreate the feature space. This allows it to abstract away
+	      unnecesary details, and utilise the important features for better
+	      performance.
+\end{itemize}
+
+
+\subsection{CNNs}
+
+
+\subsubsection{Architecture:}
+
+\begin{enumerate}
+				
+	\item
+	      2D Convolution: 6 filters and 5x5 kernel
+	\item
+	      ReLU
+	\item
+	      Max Pool: 2x2 Kernel
+	\item
+	      2D Convolution: 16 filters and 10x10 kernel
+	\item
+	      ReLU
+	\item
+	      Max Pool: 2x2 Kernel
+	\item
+	      Flattening
+	\item
+	      Fully Connected Layers with hidden sizes: {[}128, 64, 10{]}
+\end{enumerate}
+\begin{center}
+	\begin{tabular}{| c | m{11em} | c | c c c |}
+		\hline
+		Index & Architecture          & Parameters & Test Acc & Test Prec & Test Rec \\
+		\hline
+		16    & Convolutional Network & 44374      & 0.8899   & 0.893300  & 0.891262 \\
+		\hline
+	\end{tabular}
+\end{center}
+
+\subsubsection{Explanation}
+
+\begin{itemize}
+				
+	\item
+	      The CNN uses several times less number of parameters than the 2nd best
+	      model, yet performs consistently better than any other model
+	      considered.
+	\item
+	      A CNN makes use of several filters and the convolution operation to
+	      extract features from the inputs with increasing sophistication at
+	      each layer (such as edges and contours on lower layers, to more
+	      complex shapes and patterns).
+	\item
+	      This is particularly well suited to Computer Vision tasks due to kind
+	      of features desired and extracted.
+\end{itemize}
+
+
+\end{document}
