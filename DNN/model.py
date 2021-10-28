@@ -8,24 +8,40 @@ import torch.nn.functional as F
 import pytorch_lightning as pl
 from torchmetrics.functional import accuracy, precision, recall
 
-from utils import plot_classes_preds
+from utils import init_weights
 
 
 class Net(pl.LightningModule):
-    def __init__(self, lr: float = 3e-4, weight_decay: float = 1e-3) -> None:
+    def __init__(
+        self,
+        num_classes: int = 10,
+        lr: float = 3e-4,
+        weight_decay: float = 1e-3,
+        loss_fn: str = "cross_entropy",
+    ) -> None:
         super().__init__()
-        self.save_hyperparameters()
+        self.num_classes = num_classes
+        self.loss_fn = loss_fn
+        self.save_hyperparameters("lr", "weight_decay", "loss_fn")
 
     def forward(self, x):
         return x
 
     def training_step(self, batch, batch_idx):
         images, labels = batch
-        loss = F.cross_entropy(self(images), labels)
+        out = self(images)
 
-        if batch_idx == 0:
-            for name, params in self.named_parameters():
-                self.logger.experiment.add_histogram(name, params, self.current_epoch)
+        if self.loss_fn == "kl_div":
+            pred_probs = F.log_softmax(out, dim=0)
+            tgts = F.one_hot(labels, num_classes=self.num_classes)
+            loss = F.kl_div(pred_probs, tgts, reduction="batchmean")
+
+        else:
+            loss = F.cross_entropy(out, labels)
+
+        # if batch_idx == 0:
+        #     for name, params in self.named_parameters():
+        #         self.logger.experiment.add_histogram(name, params, self.current_epoch)
 
         self.log("train_loss", loss)
         return loss
@@ -34,11 +50,17 @@ class Net(pl.LightningModule):
         x, y = batch
         out = self(x)
 
-        loss = F.cross_entropy(out, y)
+        if self.loss_fn == "kl_div":
+            pred_probs = F.log_softmax(out, dim=0)
+            tgts = F.one_hot(y, num_classes=self.num_classes)
+            loss = F.kl_div(pred_probs, tgts, reduction="batchmean")
 
-        acc = accuracy(out, y, num_classes=10)
-        prec = precision(out, y, num_classes=10, average="macro")
-        rec = recall(out, y, num_classes=10, average="macro")
+        else:
+            loss = F.cross_entropy(out, y)
+
+        acc = accuracy(out, y, num_classes=self.num_classes)
+        prec = precision(out, y, num_classes=self.num_classes, average="macro")
+        rec = recall(out, y, num_classes=self.num_classes, average="macro")
 
         if stage:
             self.log(f"{stage}_loss", loss, prog_bar=True)
@@ -55,7 +77,6 @@ class Net(pl.LightningModule):
         self.evaluate(batch, "test")
 
     def configure_optimizers(self):
-        # optimizer = torch.optim.SGD(self.parameters(), lr=3e-4, momentum=1e-3, weight_decay=1e-3)
         optimizer = torch.optim.Adam(
             self.parameters(),
             lr=self.hparams.lr,
@@ -68,37 +89,55 @@ class Net(pl.LightningModule):
 class DenseNet(Net):
     def __init__(
         self,
-        arch: List[int] = None,
-        activation_fn: str = "relu",
+        input_size: int = 784,
+        num_classes: int = 10,
+        hidden_sizes: List[int] = None,
         lr: float = 3e-4,
         weight_decay: float = 1e-3,
+        activation_fn: str = "relu",
+        loss_fn: str = "cross_entropy",
     ) -> None:
-        super().__init__(lr, weight_decay)
+        super().__init__(lr=lr, weight_decay=weight_decay, loss_fn=loss_fn)
 
+        self.input_size = input_size
+        self.num_classes = num_classes
+
+        hidden_sizes = [self.input_size] + hidden_sizes
         layers = [nn.Flatten()]
 
-        for i in range(len(arch) - 1):
-            layers.append(nn.Linear(arch[i], arch[i + 1]))
+        for i in range(len(hidden_sizes) - 1):
+            layers += [nn.Linear(hidden_sizes[i], hidden_sizes[i + 1])]
 
-            if activation_fn == 'sigmoid':
-                layers.append(nn.Sigmoid())
-            elif activation_fn == 'tanh':
-                layers.append(nn.Tanh())
+            if activation_fn == "sigmoid":
+                layers += [nn.Sigmoid()]
+            elif activation_fn == "tanh":
+                layers += [nn.Tanh()]
+            elif activation_fn == 'hard_tanh':
+                layers += [nn.Hardtanh()]
+            elif activation_fn == 'mish':
+                layers += [nn.Mish()]
+            elif activation_fn == 'leaky_relu':
+                layers += [nn.LeakyReLU()]
             else:
-                layers.append(nn.ReLU())
+                layers += [nn.ReLU()]
 
-
-        layers.append(nn.Linear(arch[-1], 10))
+        layers += [nn.Linear(hidden_sizes[-1], num_classes)]
 
         self.net = nn.Sequential(*layers)
+        self.net.apply(init_weights)
 
     def forward(self, x):
         return self.net(x)
 
 
 class ConvNet(Net):
-    def __init__(self, lr: float = 3e-4, weight_decay: float = 1e-3) -> None:
-        super().__init__(lr, weight_decay)
+    def __init__(
+        self,
+        lr: float = 3e-4,
+        weight_decay: float = 1e-3,
+        loss_fn: str = "cross_entropy",
+    ) -> None:
+        super().__init__(lr, weight_decay, loss_fn=loss_fn)
 
         self.conv1 = nn.Conv2d(1, 6, 5)
         self.pool = nn.MaxPool2d(2, 2)

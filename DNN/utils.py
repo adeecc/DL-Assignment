@@ -49,5 +49,11 @@ def plot_classes_preds(net, images, labels):
     return fig
 
 
+def init_weights(m):
+    if isinstance(m, nn.Linear):
+        nn.init.xavier_normal_(m.weight)
+        m.bias.data.fill_(0.01)
+
+
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
