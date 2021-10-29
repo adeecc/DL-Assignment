@@ -50,7 +50,7 @@ def test_model(dm, name, model):
         progress_bar_refresh_rate=10,
         max_epochs=EPOCHS,
         gpus=AVAIL_GPUS,
-        logger=TensorBoardLogger("final_runs/", name=name),
+        logger=TensorBoardLogger("runs_hardtanh/", name=name),
     )
 
     print(f"Starting Training for {name}")
