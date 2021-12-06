@@ -154,3 +154,60 @@ class ConvNet(Net):
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
         return x
+
+
+
+# VGG - 16 
+VGG16 = [64, 64, 'M', 128, 128, 'M' , 256, 256, 256, 'M', ] #512, 512, 512, 'M', 512, 512, 512, 'M']
+class VGG(Net):
+    def __init__(
+        self,
+        lr: float = 3e-4,
+        weight_decay: float = 1e-3,
+        loss_fn: str = "cross_entropy",
+        in_channels: int = 1,
+        num_classes: int = 10,
+        architecture: List[int] = VGG16
+    ) -> None:
+
+        super().__init__(lr=lr, weight_decay=weight_decay, loss_fn=loss_fn)
+        self.in_channels = in_channels
+
+        self.net = self.create_conv_layers(architecture)
+        self.fc = nn.Sequential(
+            nn.Linear(784, 128),            # Check
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 10)
+        )
+
+
+    def create_conv_layers(self, architecture):
+        layers = []
+        in_channels = self.in_channels
+
+        for x in architecture:
+            if type(x) == int:
+                out_channels = x
+                layers += [
+                    nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1), 
+                    nn.BatchNorm2d(x),    # Optional not in VGG16 Architecture
+                    nn.ReLU()
+                ]
+
+                in_channels = x
+
+            elif x == 'M':
+                layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
+
+        return nn.Sequential(*layers)
+
+    def forward(self, x):
+        outs = self.net(x)
+        x = x.reshape(x.size(0), -1)
+        outs = self.fc(x)
+
+        return outs 
+    
+

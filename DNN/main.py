@@ -3,11 +3,13 @@ import torchvision
 import pandas as pd
 
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import TensorBoardLogger
+# from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import WandbLogger
+
 from pytorch_lightning.utilities.seed import seed_everything
 from pl_bolts.datamodules import FashionMNISTDataModule
 
-from model import ConvNet, DenseNet
+from model import ConvNet, DenseNet, VGG
 from pretrained_resnet import ResNet
 
 from utils import count_parameters
@@ -52,7 +54,8 @@ def test_model(dm, name, model):
         progress_bar_refresh_rate=10,
         max_epochs=EPOCHS,
         gpus=AVAIL_GPUS,
-        logger=TensorBoardLogger("A2_final_runs/", name=name),
+        # logger=TensorBoardLogger("A2_final_runs/", name=name),
+        logger=WandbLogger(save_dir="A2_final_runs/", name=name)
     )
 
     print(f"Starting Training for {name}")
@@ -99,10 +102,10 @@ def main():
     #     res = test_model(fashion_mnist_dm, name, model)
     #     results.append(res)
 
-    # # Test the Conv Net
-    # conv_net = ConvNet(lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-    # res = test_model(fashion_mnist_dm, "conv_baseline", conv_net)
-    # results.append(res)
+    # Test the Conv Net
+    conv_net = ConvNet(lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    res = test_model(fashion_mnist_dm, "conv_baseline", conv_net)
+    results.append(res)
 
     # # Models with KL Divergence
     # for name, layers in STD_MODELS.items():
@@ -118,13 +121,16 @@ def main():
     # results = pd.DataFrame(results)
     # results.to_csv("results.csv")
 
-    res_net = ResNet(lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-    res = test_model(fashion_mnist_dm, "resnet_50", res_net)
-    results.append(res)
+    # res_net = ResNet(model_name="resnet_18", lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    # res = test_model(fashion_mnist_dm, res_net.model_name, res_net)
+    # results.append(res)
 
-    results = pd.DataFrame(results)
-    results.to_csv("resnet_results.csv")
+    # results = pd.DataFrame(results)
+    # results.to_csv("resnet_results.csv")
 
+    # vgg_net = VGG(lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    # res = test_model(fashion_mnist_dm, "vgg_16", vgg_net)
+    
 
 if __name__ == "__main__":
     main()

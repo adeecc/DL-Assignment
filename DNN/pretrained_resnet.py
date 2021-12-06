@@ -7,7 +7,9 @@ import torchvision
 
 import pytorch_lightning as pl
 from pl_bolts.datamodules import FashionMNISTDataModule
-from pytorch_lightning.loggers import TensorBoardLogger
+# from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import WandbLogger 
+
 from pytorch_lightning.utilities.seed import seed_everything
 
 from utils import count_parameters
@@ -28,6 +30,7 @@ class ResNet(pl.LightningModule):
 
     def __init__(
         self, 
+        model_name: str = "resnet_18",
         in_channels: int = 1,
         out_channels: int = 64,
         kernel_size: int = 7,
@@ -42,8 +45,12 @@ class ResNet(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters("lr", "weight_decay", "loss_fn")
         self.num_classes = num_classes
+        self.model_name = model_name
 
-        self.model = models.resnet50(pretrained=True)
+        if model_name == "resnet_18":
+            self.model = models.resnet18(pretrained=True)
+        else:
+            self.model = models.resnet50(pretrained=True)
 
         # RGB -> Grayscale => in_channels = 1
 
@@ -104,54 +111,3 @@ class ResNet(pl.LightningModule):
 
         return optimizer
 
-def test_model(dm, name, model):
-
-    trainer = pl.Trainer(
-        progress_bar_refresh_rate=10,
-        max_epochs=EPOCHS,
-        gpus=AVAIL_GPUS,
-        logger=TensorBoardLogger("resnet_runs/", name=name),
-    )
-
-    print(f"Starting Training for {name}")
-    trainer.fit(model, datamodule=dm)
-
-    (res,) = trainer.test(model, datamodule=dm)
-
-    return {
-        "name": name,
-        "parameters": count_parameters(model),
-        "epochs": EPOCHS,
-        **res,
-        "lr": LEARNING_RATE,
-        "weight_decary": WEIGHT_DECAY,
-        "batch_size": BATCH_SIZE,
-    }
-
-    
-if __name__ == "__main___":
-    seed_everything(42)
-
-    transforms = torchvision.transforms.Compose(
-        [
-            torchvision.transforms.ToTensor(),
-        ]
-    )
-
-    fashion_mnist_dm = FashionMNISTDataModule(
-        data_dir=PATH_DATASETS,
-        batch_size=BATCH_SIZE,
-        normalize=True,
-        num_workers=NUM_WORKERS,
-        train_transforms=transforms,
-        val_transforms=transforms,
-        test_transforms=transforms,
-    )
-
-    results = []
-    res_net = ResNet(lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-    res = test_model(fashion_mnist_dm, "resnet_50", res_net)
-    results.append(res)
-
-    results = pd.DataFrame(results)
-    results.to_csv("resnet_results.csv")
