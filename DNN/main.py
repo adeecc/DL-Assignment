@@ -48,7 +48,7 @@ STD_MODELS = {
 }
 
 
-def test_model(dm, name, model):
+def test_model(dm, name, model, do_fit=True):
 
     trainer = pl.Trainer(
         progress_bar_refresh_rate=10,
@@ -58,8 +58,9 @@ def test_model(dm, name, model):
         # logger=WandbLogger(save_dir="A2_final_runs/", name=name)
     )
 
-    print(f"Starting Training for {name}")
-    trainer.fit(model, datamodule=dm)
+    if do_fit:
+        print(f"Starting Training for {name}")
+        trainer.fit(model, datamodule=dm)
 
     (res,) = trainer.test(model, datamodule=dm)
 
@@ -128,8 +129,15 @@ def main():
     # results = pd.DataFrame(results)
     # results.to_csv("resnet_results.csv")
 
-    vgg_net = VGG(lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
-    res = test_model(fashion_mnist_dm, "vgg_16", vgg_net)
+    # vgg_net = VGG(lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    # model = ConvNet(lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
+    model = ConvNet.load_from_checkpoint("A2_final/conv/version_3/checkpoints/epoch=29-step=44999.ckpt")
+    # model = VGG.load_from_checkpoint("A2_final/conv/version_3/checkpoints/epoch=29-step=44999.ckpt")
+
+    res = test_model(fashion_mnist_dm, "conv", model, do_fit=False)
+    print(res)
+
+
     
 
 if __name__ == "__main__":

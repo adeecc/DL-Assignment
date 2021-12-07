@@ -70,7 +70,15 @@ class Net(pl.LightningModule):
         acc = accuracy(out, y, num_classes=self.num_classes)
         prec = precision(out, y, num_classes=self.num_classes, average="macro")
         rec = recall(out, y, num_classes=self.num_classes, average="macro")
-        report = classification_report(y.cpu().numpy(), class_preds.cpu().numpy(), labels=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+        report = classification_report(y.cpu().numpy(), class_preds.cpu().numpy(), labels=list(range(10)), zero_division=1)
+        print(report)
+
+        import IPython; IPython.embed()
+        if stage == "test":
+            df = pd.DataFrame(report).T
+            df.to_csv("classification_report.csv")
+            print(df.to_latex())
 
         if stage:
             self.log(f"{stage}_loss", loss, prog_bar=True)
