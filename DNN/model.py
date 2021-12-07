@@ -6,10 +6,13 @@ import torch.nn.functional as F
 
 
 import pytorch_lightning as pl
-from torchmetrics.functional import accuracy, precision, recall
+from torchmetrics.functional import accuracy, precision, recall, confusion_matrix
+from sklearn.metrics import classification_report
 
 from utils import init_weights
-
+import matplotlib.pyplot as plt 
+import pandas as pd
+import seaborn as sns 
 
 class Net(pl.LightningModule):
     def __init__(
@@ -20,6 +23,9 @@ class Net(pl.LightningModule):
         loss_fn: str = "cross_entropy",
     ) -> None:
         super().__init__()
+        self.classification_reports_val = []
+        self.classification_reports_test = []
+
         self.num_classes = num_classes
         self.loss_fn = loss_fn
         self.save_hyperparameters("lr", "weight_decay", "loss_fn")
@@ -58,9 +64,13 @@ class Net(pl.LightningModule):
         else:
             loss = F.cross_entropy(out, y)
 
+        pred_probs = F.log_softmax(out, dim=-1)
+        class_preds = torch.argmax(pred_probs, dim=-1)
+
         acc = accuracy(out, y, num_classes=self.num_classes)
         prec = precision(out, y, num_classes=self.num_classes, average="macro")
         rec = recall(out, y, num_classes=self.num_classes, average="macro")
+        report = classification_report(y.cpu().numpy(), class_preds.cpu().numpy(), labels=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 
         if stage:
             self.log(f"{stage}_loss", loss, prog_bar=True)
@@ -69,12 +79,19 @@ class Net(pl.LightningModule):
             self.log(f"{stage}_rec", rec)
         if stage == "test":
             self.log(f"hp_metric", acc)
+        
+        return { 'loss': loss, 'preds': out, 'target': y}, report
 
     def validation_step(self, batch, batch_idx):
-        self.evaluate(batch, "val")
+        stats, report = self.evaluate(batch, "val")
+        self.classification_reports_val.append(report)
+
+        return stats 
 
     def test_step(self, batch, batch_idx):
-        self.evaluate(batch, "test")
+        stats, report = self.evaluate(batch, "test")
+        self.classification_reports_test.append(report)
+        return stats 
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
@@ -85,6 +102,17 @@ class Net(pl.LightningModule):
 
         return optimizer
 
+    def validation_epoch_end(self, outputs):
+        preds = torch.cat([tmp['preds'] for tmp in outputs])
+        targets = torch.cat([tmp['target'] for tmp in outputs])
+        CM = confusion_matrix(preds, targets, num_classes=10)
+
+        df_cm = pd.DataFrame(CM.cpu().numpy(), index = range(10), columns=range(10))
+        plt.figure(figsize = (10,7))
+        fig_ = sns.heatmap(df_cm, annot=True, cmap='Spectral').get_figure()
+        plt.close(fig_)
+        
+        self.logger.experiment.add_figure("Confusion matrix", fig_, self.current_epoch)
 
 class DenseNet(Net):
     def __init__(
